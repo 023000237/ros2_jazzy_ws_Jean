@@ -1,11 +1,20 @@
 services:
   ros2:
-    build: .
+    build:
+      context: ../..
+      dockerfile: .docker/ubuntu_desktop/Dockerfile    
+
     container_name: ros2_dev_lab
+
     network_mode: host
+    ipc: host
+
     stdin_open: true
     tty: true
-    ipc: host
+
+    volumes:
+      - ../../ros2_ws:/ros2_ws
+      - /tmp/.X11-unix:/tmp/.X11-unix
 
     environment:
       ROS_DOMAIN_ID: 0
@@ -13,8 +22,5 @@ services:
       QT_X11_NO_MITSHM: 1
       LIBGL_ALWAYS_SOFTWARE: 1
 
-    volumes:
-      - /tmp/.X11-unix:/tmp/.X11-unix
-      - ../../:/ros2_ws
-
-    privileged: true
+    devices:
+      - /dev/rplidar:/dev/rplidar

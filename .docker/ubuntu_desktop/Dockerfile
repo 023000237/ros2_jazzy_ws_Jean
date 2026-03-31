@@ -11,14 +11,18 @@ RUN apt update && apt install -y \
     nano \
     tmux \
     iputils-ping \
+    ros-jazzy-rplidar-ros \
     && rm -rf /var/lib/apt/lists/*
 
-# Initialize rosdep (safe if already initialized)
+# Initialize rosdep
 RUN rosdep init || true
 RUN rosdep update
 
 # Workspace
 WORKDIR /ros2_ws
 
-# Auto source ROS
+# Ensure ROS environment always available
+SHELL ["/bin/bash", "-c"]
 RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc
+
+CMD ["bash"]
