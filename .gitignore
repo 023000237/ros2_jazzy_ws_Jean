@@ -4,13 +4,6 @@ ros2_ws/install
 ros2_ws/log
 ros2_ws/src/*
 
-# ROS 2 turtlebot core package
-!ros2_ws/src/turtlebot
-
-# SoC & STM32 bridge package
-!ros2_ws/src/uno_q_bridge
-
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
