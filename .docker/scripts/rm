@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+COMPOSE_DIR="$PROJECT_ROOT/.docker/ubuntu_desktop"
+
+CONTAINER_NAME="ros2_dev_lab"
+
+echo "Stopping and removing container: $CONTAINER_NAME"
+
+cd "$COMPOSE_DIR"
+
+# Stop and remove container + network
+docker compose down -v || true
+
+# Remove image (if exists)
+IMAGE_ID=$(docker images -q ${CONTAINER_NAME} 2>/dev/null || true)
+if [ -n "$IMAGE_ID" ]; then
+    echo "Removing image: $CONTAINER_NAME"
+    docker rmi -f "$IMAGE_ID" || true
+fi
+
+# Extra cleanup
+echo "Cleaning unused Docker resources..."
+docker system prune -f
+
+echo "Done. Space reclaimed."

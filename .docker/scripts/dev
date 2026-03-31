@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+COMPOSE_DIR="$PROJECT_ROOT/.docker/ubuntu_desktop"
+
+CONTAINER_NAME="ros2_dev_lab"
+
+cd "$COMPOSE_DIR"
+
+# Build image only the first time
+IMAGE_ID=$(docker images -q ${CONTAINER_NAME} 2>/dev/null || true)
+
+if [ -z "$IMAGE_ID" ]; then
+    echo "ROS2 image not found. Building container..."
+    docker compose build
+fi
+
+# Start container if not running
+if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+    echo "Starting container..."
+    docker compose up -d
+fi
+
+# Enter ROS2 environment
+echo "Opening ROS2 development shell..."
+
+docker exec -it ${CONTAINER_NAME} bash -c "
+source /opt/ros/jazzy/setup.bash
+[ -f /ws/install/setup.bash ] && source /ws/install/setup.bash
+exec bash
+"
