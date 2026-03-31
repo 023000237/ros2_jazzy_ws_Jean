@@ -2,7 +2,13 @@
 ros2_ws/build
 ros2_ws/install
 ros2_ws/log
+
+# Ignore all packages in src
 ros2_ws/src/*
+
+# BUT allow turtlebot_core
+!ros2_ws/src/turtlebot_core/
+!ros2_ws/src/turtlebot_core/**
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
