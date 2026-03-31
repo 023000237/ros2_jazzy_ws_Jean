@@ -1,0 +1,4 @@
+[submodule "ros2_ws/src/turtlebot_core"]
+	path = ros2_ws/src/turtlebot_core
+	url = https://github.com/chucholoport/turtlebot_core.git
+	branch = develop
