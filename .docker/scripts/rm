@@ -2,28 +2,34 @@
 
 set -e
 
+# Script & Project directories
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-COMPOSE_DIR="$PROJECT_ROOT/.docker/ubuntu_desktop"
 
-CONTAINER_NAME="ros2_dev_lab"
+# Load config (same directory)
+CONFIG_FILE="$SCRIPT_DIR/.config"
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "ERROR: Missing config file: $CONFIG_FILE"
+    exit 1
+fi
+source "$CONFIG_FILE"
 
-echo "Stopping and removing container: $CONTAINER_NAME"
+# Docker-compose directory
+COMPOSE_DIR="$PROJECT_ROOT/$COMPOSE_SUBDIR"
 
 cd "$COMPOSE_DIR"
 
-# Stop and remove container + network
-docker compose down -v || true
+echo "Stopping and removing container: $CONTAINER_NAME"
+
+# Stop and remove containers, networks, and volumes
+docker compose down -v
 
 # Remove image (if exists)
-IMAGE_ID=$(docker images -q ${CONTAINER_NAME} 2>/dev/null || true)
-if [ -n "$IMAGE_ID" ]; then
-    echo "Removing image: $CONTAINER_NAME"
-    docker rmi -f "$IMAGE_ID" || true
-fi
+echo "Removing image: $IMAGE_NAME"
+docker rmi -f ${IMAGE_NAME} 2>/dev/null || true
 
-# Extra cleanup
-echo "Cleaning unused Docker resources..."
-docker system prune -f
+# Cleanup dangling images only
+echo "Cleaning dangling images..."
+docker image prune -f
 
 echo "Done. Space reclaimed."
