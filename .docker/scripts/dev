@@ -19,6 +19,11 @@ COMPOSE_DIR="$PROJECT_ROOT/$COMPOSE_SUBDIR"
 
 cd "$COMPOSE_DIR"
 
+# X11 permissions
+if command -v xhost >/dev/null 2>&1 && [ -n "$DISPLAY" ]; then
+    xhost +local:root >/dev/null 2>&1 || true
+fi
+
 # Build image only the first time
 IMAGE_ID=$(docker images -q ${IMAGE_NAME} 2>/dev/null || true)
 
