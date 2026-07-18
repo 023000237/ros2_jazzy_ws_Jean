@@ -9,19 +9,21 @@ services:
     network_mode: host
     ipc: host
 
+    privileged: true
+    
     stdin_open: true
     tty: true
 
     volumes:
+      # workspace manejable desde vscode
       - ../../ros2_ws:/ros2_ws
+      # exposicion de monitor para graficos
       - /tmp/.X11-unix:/tmp/.X11-unix
-
+      # exposicion de puertos externos
+      - /dev:/dev
+    
     environment:
       ROS_DOMAIN_ID: 0
       DISPLAY: ${DISPLAY}
       QT_X11_NO_MITSHM: 1
       LIBGL_ALWAYS_SOFTWARE: 1
-
-    #devices:
-    #  - /dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0:/dev/rplidar
-    
