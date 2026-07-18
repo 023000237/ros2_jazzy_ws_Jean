@@ -48,6 +48,7 @@ echo "Opening ROS2 development shell..."
 
 docker exec -it ${CONTAINER_NAME} bash -c "
 source /opt/ros/jazzy/setup.bash
-[ -f /ws/install/setup.bash ] && source /ws/install/setup.bash
+[ -f /ros2_ws/install/setup.bash ] && source /ros2_ws/install/setup.bash
+[ -f /uros_ws/install/local_setup.bash ] && source /uros_ws/install/local_setup.bash
 exec bash
 "

@@ -1,0 +1,22 @@
+services:
+  idf:
+    build:
+      context: ../..
+      dockerfile: .docker/esp32/Dockerfile
+
+    container_name: esp32_dev_lab
+
+    # host para poder probar el agente micro-ROS por UDP contra la ESP32
+    network_mode: host
+
+    # acceso al puerto serie de la ESP32 (flash / monitor)
+    privileged: true
+
+    stdin_open: true
+    tty: true
+
+    volumes:
+      # proyecto de firmware editable desde vscode
+      - ../../esp32_ws:/project
+      # exposicion de puertos externos (ESP32 por USB)
+      - /dev:/dev
