@@ -1,0 +1,40 @@
+menu "Chassis Configuration"
+
+# Este proyecto es el TurtleBot COMPLETO (ruedas + LED). Si solo quieres el
+# LED (base de vision artificial), usa el proyecto hermano esp32_ws/led.
+
+config CHASSIS_LED_GPIO
+    int "GPIO del LED de a bordo"
+    default 2
+    range 0 48
+    help
+        GPIO al que esta conectado el LED.
+        En la mayoria de devkits ESP32 es el GPIO 2.
+
+config CHASSIS_DEBUG_PRINT
+    bool "Imprimir trazas de depuracion por UART"
+    default n
+    help
+        Imprime por consola lo que llega en /set_led y /cmd_vel.
+
+        DEJALO APAGADO en operacion normal: cuando el transporte de
+        micro-ROS es UART0 (el default), la consola comparte el mismo
+        puerto y estos mensajes se inyectan dentro del flujo XRCE-DDS,
+        lo que puede provocar paquetes descartados.
+
+        Enciendelo solo para depurar, de preferencia con el transporte
+        UDP o moviendo la consola a otro UART.
+
+config MICRO_ROS_APP_STACK
+    int "Stack de la tarea micro-ROS (bytes)"
+    default 16000
+    help
+        Tamano del stack en bytes de la tarea que corre micro-ROS.
+
+config MICRO_ROS_APP_TASK_PRIO
+    int "Prioridad de la tarea micro-ROS"
+    default 5
+    help
+        Prioridad de la tarea de micro-ROS (mayor valor = mayor prioridad).
+
+endmenu

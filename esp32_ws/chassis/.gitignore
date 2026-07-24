@@ -1,0 +1,12 @@
+# Artefactos de build de ESP-IDF (los genera el contenedor como root)
+build/
+sdkconfig
+sdkconfig.old
+managed_components/
+
+# Artefactos que genera micro_ros_espidf_component al compilar libmicroros
+components/micro_ros_espidf_component/include/
+components/micro_ros_espidf_component/libmicroros.a
+components/micro_ros_espidf_component/micro_ros_src/
+components/micro_ros_espidf_component/micro_ros_dev/
+components/micro_ros_espidf_component/esp32_toolchain.cmake

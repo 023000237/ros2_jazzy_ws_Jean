@@ -9,6 +9,21 @@ Esta carpeta se monta en `/project` dentro del container `esp32_dev_lab`
 .docker/scripts/esp
 ```
 
+## Proyectos incluidos
+
+Dos variantes del firmware del chassis (elige una según tu robot, igual que los
+dos sketches del Arduino Uno Q):
+
+| Proyecto | Para qué | Nodo ROS |
+|---|---|---|
+| [`led`](led) | **Solo LED** — base de visión artificial, sin motores | `led_esp32` |
+| [`chassis`](chassis) | **TurtleBot completo** — ruedas + LED | `chassis_esp32` |
+
+> El componente `micro_ros_espidf_component` es un submódulo dentro de
+> `chassis/components/`; el proyecto `led` lo **reutiliza** vía
+> `EXTRA_COMPONENT_DIRS` (no lo duplica). Inicialízalo con
+> `git submodule update --init --recursive`.
+
 ## Crear el firmware con micro-ROS
 
 Dentro del container:

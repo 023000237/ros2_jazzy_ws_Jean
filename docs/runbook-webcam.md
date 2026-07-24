@@ -92,7 +92,7 @@ Otros argumentos disponibles (todos con `arg:=valor`):
 | Argumento       | Default                | Para qué sirve |
 |-----------------|------------------------|----------------|
 | `video_device`  | `/dev/video0`          | Ruta V4L2 de la cámara (usa la `by-id`) |
-| `parent_frame`  | `base_link`            | Frame padre en el árbol TF (`laser` si solo usas lidar) |
+| `parent_frame`  | `base_link`            | Frame padre en el árbol TF (`laser` si solo usas rplidar) |
 | `camera_frame`  | `camera_link`          | Frame físico de la cámara |
 | `optical_frame` | `camera_optical_frame` | Frame óptico con el que se publica la imagen |
 

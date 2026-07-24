@@ -1,0 +1,26 @@
+services:
+  ros2:
+    build:
+      context: ../..
+      dockerfile: .docker/ubuntu_uno_q/Dockerfile    
+
+    container_name: ros2_uno_q
+
+    network_mode: host
+    ipc: host
+
+    privileged: true
+    
+    stdin_open: true
+    tty: true
+
+    volumes:
+      # workspace manejable desde vscode
+      - ../../ros2_ws:/ros2_ws
+      # exposicion de puertos externos
+      - /dev:/dev
+      # exposicion de arduino router bridge
+      - /var/run/arduino-router.sock:/var/run/arduino-router.sock
+
+    environment:
+      ROS_DOMAIN_ID: 0
