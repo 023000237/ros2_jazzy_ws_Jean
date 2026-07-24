@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+set -e
+
+# Script & Project directories
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# Load config (same directory)
+CONFIG_FILE="$SCRIPT_DIR/.config"
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "ERROR: Missing config file: $CONFIG_FILE"
+    exit 1
+fi
+source "$CONFIG_FILE"
+
+# Docker-compose directory
+COMPOSE_DIR="$PROJECT_ROOT/$RPI_COMPOSE_SUBDIR"
+
+cd "$COMPOSE_DIR"
+
+# Build image only the first time
+IMAGE_ID=$(docker images -q ${RPI_IMAGE_NAME} 2>/dev/null || true)
+
+if [ -z "$IMAGE_ID" ]; then
+    echo "ROS2 rpi image not found. Building container..."
+    docker compose build
+fi
+
+# Container lifecycle handling
+if docker ps --format '{{.Names}}' | grep -q "^${RPI_CONTAINER_NAME}$"; then
+    echo "Container already running."
+elif docker ps -a --format '{{.Names}}' | grep -q "^${RPI_CONTAINER_NAME}$"; then
+    echo "Starting existing container..."
+    docker start ${RPI_CONTAINER_NAME}
+else
+    echo "Creating and starting container..."
+    docker compose up -d
+fi
+
+# Enter ROS2 environment
+echo "Opening ROS2 rpi shell..."
+
+docker exec -it ${RPI_CONTAINER_NAME} bash -c "
+source /opt/ros/jazzy/setup.bash
+[ -f /ros2_ws/install/setup.bash ] && source /ros2_ws/install/setup.bash
+[ -f /uros_ws/install/local_setup.bash ] && source /uros_ws/install/local_setup.bash
+exec bash
+"

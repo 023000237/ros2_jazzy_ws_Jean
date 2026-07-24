@@ -1,0 +1,8 @@
+# Artefactos de build de ESP-IDF (los genera el contenedor como root)
+build/
+sdkconfig
+sdkconfig.old
+managed_components/
+
+# Este proyecto NO tiene su propio components/: reutiliza el
+# micro_ros_espidf_component del proyecto chassis (EXTRA_COMPONENT_DIRS).

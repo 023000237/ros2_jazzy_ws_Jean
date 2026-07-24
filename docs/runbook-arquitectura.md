@@ -1,31 +1,51 @@
 # Runbook · Arquitectura del paquete `turtlebot_core`
 
-Este runbook explica cómo está estructurado hoy el paquete `turtlebot_core` y,
-sobre todo, **cómo fluye la información por la red de ROS 2** (nodos, topics y
-TF). El objetivo es que puedas ubicar dónde "engancha" tu propio nodo de OpenCV
-para empezar a procesar la imagen de la webcam.
+Este runbook explica cómo está estructurado el paquete `turtlebot_core` y, sobre
+todo, **cómo fluye la información por la red de ROS 2** (nodos, topics y TF).
 
 > Los diagramas están en [Mermaid](https://mermaid.js.org/). Se renderizan solos
 > en GitHub y en VSCode (con la vista previa de Markdown).
 
 ---
 
+## Las dos configuraciones del proyecto
+
+El mismo repositorio soporta **dos escenarios**. Empieza por el A; el B es el
+robot completo.
+
+| | **A · Base de visión artificial** | **B · TurtleBot completo** |
+|---|---|---|
+| **Objetivo** | Que tu nodo de OpenCV **actúe** sobre el hardware | Robot móvil completo |
+| **Hardware** | Webcam + ESP32 con un LED | Webcam + rplidar + ESP32 + chasis con ruedas |
+| **Firmware ESP32** | proyecto `esp32_ws/led` | proyecto `esp32_ws/chassis` |
+| **Actúas publicando** | `/set_led` (`std_msgs/Bool`) | `/cmd_vel` (`geometry_msgs/Twist`) |
+| **Sección** | [Parte A](#parte-a--base-de-conexión-de-visión-artificial) | [Parte B](#parte-b--turtlebot-completo) |
+
+La idea es que **no necesitas motores para cerrar el ciclo completo**
+percepción → decisión → actuación: en el modo A, tu nodo detecta algo con OpenCV
+y enciende un LED en la ESP32. La arquitectura de red es idéntica; lo único que
+cambia es qué topic publicas.
+
+---
+
+# Parte común
+
 ## 1. Qué es cada archivo del paquete
 
 ```
 turtlebot_core/
 ├── launch/
-│   ├── turtlebot_edge.launch.py     ← ENTRADA en el robot: lidar + chassis + webcam
-│   ├── turtlebot_host.launch.py     ← ENTRADA en la PC: RViz2 (visualización)
-│   ├── rplidar.launch.py            ← driver del lidar          → /scan
-│   ├── chassis.launch.py            ← backend del chassis (conmutable)
+│   ├── edge.launch.py     ← ENTRADA en el robot: rplidar + chassis + webcam
+│   ├── host.launch.py     ← ENTRADA en la PC: RViz2 (arma turtlebot.rviz)
+│   ├── rplidar.launch.py            ← driver del rplidar          → /scan
+│   ├── mcu.launch.py            ← backend del chassis (conmutable)
 │   ├── webcam.launch.py             ← driver de la cámara + TF  → /image_raw
-│   ├── view_rplidar.launch.py       ← RViz solo lidar
-│   ├── remote_rplidar.launch.py     ← variantes para lanzar en remoto
-│   └── remote_chassis.launch.py
-├── rviz/
-│   ├── view_camera.rviz             ← config de RViz con cámara + lidar + TF
-│   └── view_rplidar.rviz
+│   └── remote_chassis.launch.py     ← teleop (teclado → /cmd_vel)
+├── rviz/                            ← bloques que host.launch.py fusiona
+│   ├── base.rviz                    ← escena base (Grid + TF)
+│   ├── rplidar.rviz                 ← bloque LaserScan (/scan)
+│   ├── camera.rviz                  ← bloque Image + Camera (/image_raw)
+│   └── (turtlebot.rviz)             ← generado al vuelo según robot.ini
 ├── turtlebot_core/
 │   ├── control_led.py               ← nodo: publica /set_led (manual)
 │   └── toggle_led.py                ← nodo: publica /set_led (automático)
@@ -37,8 +57,8 @@ Hay **dos puntos de entrada** según dónde ejecutes:
 
 | Launch                     | ¿Dónde corre? | ¿Qué levanta? |
 |----------------------------|---------------|---------------|
-| `turtlebot_edge.launch.py` | En el robot   | Sensores y actuadores (lidar, chassis, cámara) |
-| `turtlebot_host.launch.py` | En tu PC      | Herramientas de visualización (RViz2) |
+| `edge.launch.py` | En el robot (SBC) | Sensores y actuadores (rplidar, chassis, cámara) |
+| `host.launch.py` | En tu PC      | Herramientas de visualización (RViz2) |
 
 Ambos hablan por la **misma red de ROS 2** (DDS), así que la PC "ve" los topics
 que publica el robot sin configuración extra (misma `ROS_DOMAIN_ID`).
@@ -47,25 +67,25 @@ que publica el robot sin configuración extra (misma `ROS_DOMAIN_ID`).
 
 ## 2. Jerarquía de los launch (quién incluye a quién)
 
-`turtlebot_edge.launch.py` es un **orquestador**: no crea nodos directamente,
+`edge.launch.py` es un **orquestador**: no crea nodos directamente,
 sino que incluye a los otros tres launch y les reenvía argumentos.
 
 ```mermaid
 graph TD
-    EDGE["turtlebot_edge.launch.py<br/><i>orquestador en el robot</i>"]
-    HOST["turtlebot_host.launch.py<br/><i>orquestador en la PC</i>"]
+    EDGE["edge.launch.py<br/><i>orquestador en el robot</i>"]
+    HOST["host.launch.py<br/><i>orquestador en la PC</i>"]
 
     RPLIDAR["rplidar.launch.py"]
-    CHASSIS["chassis.launch.py"]
+    CHASSIS["mcu.launch.py"]
     WEBCAM["webcam.launch.py"]
-    RVIZ["nodo rviz2<br/>(-d view_camera.rviz)"]
+    RVIZ["nodo rviz2<br/>(-d turtlebot.rviz generado)"]
 
     EDGE -->|include| RPLIDAR
     EDGE -->|include| CHASSIS
     EDGE -->|"include (parent_frame:=laser)"| WEBCAM
-    HOST -->|node| RVIZ
+    HOST -->|"arma turtlebot.rviz<br/>desde robot.ini"| RVIZ
 
-    EDGE -.->|"reenvía args:<br/>chassis_backend, microros_transport,<br/>serial_device, serial_baudrate, udp_port"| CHASSIS
+    EDGE -.->|"reenvía args:<br/>backend, microros_transport,<br/>serial_device, serial_baudrate, udp_port"| CHASSIS
 
     classDef entry fill:#1f6feb,stroke:#0b3d91,color:#fff
     classDef sub fill:#2ea043,stroke:#166534,color:#fff
@@ -78,58 +98,78 @@ graph TD
 
 ---
 
-## 3. La red de nodos y topics (lo importante para OpenCV)
+# Parte A · Base de conexión de visión artificial
 
-Este es el grafo que verías con `rqt_graph` cuando corre el edge. Los óvalos son
-**nodos**, las flechas etiquetadas son **topics**.
+> **Meta:** tu nodo de OpenCV ve algo por la webcam y enciende el LED de la
+> ESP32. Sin motores, sin rplidar.
+>
+> **Firmware:** proyecto `esp32_ws/led` (o el sketch `sketch/led/led.ino` en el Uno Q).
+
+## A1. La red de nodos y topics
+
+Este es el grafo que verías con `rqt_graph`. Los óvalos son **nodos**, las
+flechas etiquetadas son **topics**.
 
 ```mermaid
 graph LR
-    subgraph ROBOT["🤖 Robot (turtlebot_edge)"]
+    subgraph ROBOT["🤖 SBC (edge)"]
         USBCAM(["usb_cam"])
-        LIDAR(["rplidar_composition"])
-        CHASSIS(["chassis backend<br/>uno_q_bridge / micro_ros_agent"])
+        AGENT(["micro_ros_agent"])
     end
 
-    subgraph PC["💻 PC (turtlebot_host)"]
+    subgraph MCU["🔌 ESP32 (modo LED)"]
+        ESP(["chassis_esp32"])
+    end
+
+    subgraph PC["💻 PC (host)"]
         RVIZ(["rviz2"])
     end
 
-    subgraph TU["✨ Tu código (lo que vas a desarrollar)"]
+    subgraph TU["✨ Tu código"]
         CVNODE(["tu_nodo_opencv"])
     end
 
-    USBCAM -->|"/image_raw<br/>sensor_msgs/Image"| RVIZ
-    USBCAM -->|"/camera_info<br/>sensor_msgs/CameraInfo"| RVIZ
-    LIDAR -->|"/scan<br/>sensor_msgs/LaserScan"| RVIZ
-
-    USBCAM -->|"/image_raw"| CVNODE
+    USBCAM -->|"/image_raw<br/>sensor_msgs/Image"| CVNODE
+    USBCAM -->|"/image_raw + /camera_info"| RVIZ
     CVNODE -.->|"/image_processed<br/>(topic que tú publicas)"| RVIZ
+    CVNODE ==>|"/set_led<br/>std_msgs/Bool"| AGENT
+    AGENT <===>|"serial / UDP<br/>(Micro XRCE-DDS)"| ESP
+    ESP -->|GPIO| LEDHW["💡 LED"]
+    AGENT -->|"/chassis/heartbeat"| RVIZ
 
     classDef robot fill:#2ea043,stroke:#166534,color:#fff
     classDef pc fill:#1f6feb,stroke:#0b3d91,color:#fff
     classDef tu fill:#a371f7,stroke:#6e40c9,color:#fff
-    class USBCAM,LIDAR,CHASSIS robot
+    classDef mcu fill:#d29922,stroke:#9e6a03,color:#fff
+    classDef hw fill:#30363d,stroke:#8b949e,color:#fff
+    class USBCAM,AGENT robot
     class RVIZ pc
     class CVNODE tu
+    class ESP mcu
+    class LEDHW hw
 ```
 
-**Topics que te interesan para visión:**
+> El `micro_ros_agent` es un **puente**, no un nodo con lógica: los topics de la
+> ESP32 aparecen en la red de ROS 2 como si fueran de cualquier otro nodo. Por
+> eso tu nodo publica `/set_led` directamente, sin saber que del otro lado hay
+> un microcontrolador.
 
-| Topic          | Tipo de mensaje            | Lo publica    | Para qué |
-|----------------|----------------------------|---------------|----------|
-| `/image_raw`   | `sensor_msgs/Image`        | `usb_cam`     | La imagen cruda de la webcam (aquí te suscribes) |
-| `/camera_info` | `sensor_msgs/CameraInfo`   | `usb_cam`     | Calibración/intrínsecos (para proyección 3D) |
-| `/scan`        | `sensor_msgs/LaserScan`    | `rplidar`     | Barrido del lidar (si mezclas visión + lidar) |
-| `/set_led`     | `std_msgs/Bool`            | nodos LED     | Ejemplo de actuación hacia el chassis |
+**Topics de la Parte A:**
+
+| Topic                | Tipo                     | Dirección | Para qué |
+|----------------------|--------------------------|-----------|----------|
+| `/image_raw`         | `sensor_msgs/Image`      | ← `usb_cam` | La imagen cruda (aquí te suscribes) |
+| `/camera_info`       | `sensor_msgs/CameraInfo` | ← `usb_cam` | Calibración/intrínsecos |
+| `/set_led`           | `std_msgs/Bool`          | → ESP32   | **Tu actuación**: enciende/apaga el LED |
+| `/chassis/heartbeat` | `std_msgs/Int32`         | ← ESP32   | Contador 1 Hz: verifica que el enlace vive |
 
 ---
 
-## 4. Detalle: `webcam.launch.py`
+## A2. Detalle: `webcam.launch.py`
 
-Este launch levanta **3 procesos**: el driver de la cámara y dos publicadores de
-transformada estática (TF). La imagen se publica con `frame_id =
-camera_optical_frame` para que RViz2 la oriente bien.
+Levanta **3 procesos**: el driver de la cámara y dos publicadores de transformada
+estática (TF). La imagen se publica con `frame_id = camera_optical_frame` para
+que RViz2 la oriente bien.
 
 ```mermaid
 graph TD
@@ -160,33 +200,213 @@ graph TD
 
 ### Árbol de TF resultante
 
-En el edge, la cámara se ancla al frame del lidar (`laser`) para que todo el
-árbol quede conectado:
-
 ```mermaid
 graph TD
-    LASER["laser<br/><i>(rplidar)</i>"] --> CL["camera_link"]
+    LASER["laser<br/><i>(o base_link)</i>"] --> CL["camera_link"]
     CL --> COF["camera_optical_frame<br/><i>(aquí vive /image_raw)</i>"]
 
     classDef f fill:#1f6feb,stroke:#0b3d91,color:#fff
     class LASER,CL,COF f
 ```
 
-> El default (`base_link`) aplica cuando lanzas la cámara sola con un
-> `robot_state_publisher` que ya publica `base_link`. Sin lidar ni robot, usa
-> `parent_frame:=laser` o el frame que exista.
+> El default (`base_link`) aplica cuando lanzas la cámara sola. En el edge se usa
+> `parent_frame:=laser` para colgarla del frame del rplidar y que el árbol quede
+> conectado.
 
 ---
 
-## 5. Detalle: `chassis.launch.py` (backend conmutable)
+## A3. Dónde entra TU nodo de OpenCV
+
+Tu nodo es **un suscriptor más** de `/image_raw`. No tienes que tocar
+`webcam.launch.py` ni el firmware: te conectas a los topics que ya existen.
+
+```mermaid
+sequenceDiagram
+    participant Cam as usb_cam
+    participant Yo as tu_nodo_opencv
+    participant Ag as micro_ros_agent
+    participant Esp as ESP32
+
+    Cam->>Yo: /image_raw (sensor_msgs/Image)
+    Note over Yo: imgmsg_to_cv2() → np.ndarray (BGR)
+    Yo->>Yo: procesas con OpenCV<br/>(¿detectaste el objeto?)
+    Yo->>Ag: /set_led (std_msgs/Bool)
+    Ag->>Esp: serial / UDP
+    Note over Esp: 💡 gpio_set_level()
+```
+
+Esqueleto de un nodo que **ve y actúa** (rclpy + cv_bridge):
+
+```python
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import Image
+from std_msgs.msg import Bool
+from cv_bridge import CvBridge
+import cv2
+
+
+class VisionNode(Node):
+    def __init__(self):
+        super().__init__('tu_nodo_opencv')
+        self.bridge = CvBridge()
+        # Entrada: la imagen que ya publica usb_cam
+        self.sub = self.create_subscription(
+            Image, '/image_raw', self.on_image, 10)
+        # Salidas: imagen procesada (para ver) y LED (para actuar)
+        self.img_pub = self.create_publisher(Image, '/image_processed', 10)
+        self.led_pub = self.create_publisher(Bool, '/set_led', 10)
+
+    def on_image(self, msg):
+        frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+
+        # --- tu procesamiento OpenCV aquí ---
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        detectado = bool(gray.mean() > 100)      # ejemplo trivial
+        out = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+        # -------------------------------------
+
+        # Actúas sobre el hardware
+        self.led_pub.publish(Bool(data=detectado))
+
+        # Publicas la imagen procesada para verla en RViz2
+        out_msg = self.bridge.cv2_to_imgmsg(out, encoding='bgr8')
+        out_msg.header = msg.header   # conserva timestamp y frame_id
+        self.img_pub.publish(out_msg)
+
+
+def main():
+    rclpy.init()
+    rclpy.spin(VisionNode())
+    rclpy.shutdown()
+```
+
+> Conserva `msg.header` en tu salida: así tu imagen procesada mantiene el
+> `frame_id = camera_optical_frame` y RViz2 la ubica en el árbol de TF igual que
+> `/image_raw`.
+
+---
+
+## A4. Flujo de trabajo (Parte A)
+
+1. **Flashea la ESP32** en modo LED (es el default):
+
+   ```bash
+   robot esp
+   cd /project/chassis && idf.py set-target esp32 && idf.py build
+   idf.py -p /dev/ttyUSB0 flash monitor
+   ```
+
+   Detalles: `esp32_ws/chassis/README.md`
+
+2. **Levanta el agente** (conecta la ESP32 a la red de ROS 2):
+
+   ```bash
+   ros2 launch turtlebot_core mcu.launch.py \
+     backend:=microros microros_transport:=serial
+   ```
+
+3. **Levanta la cámara**:
+
+   ```bash
+   ros2 launch turtlebot_core webcam.launch.py \
+     video_device:=/dev/v4l/by-id/<tu-camara>-video-index0
+   ```
+
+   (Identificar la cámara → [`runbook-webcam.md`](./runbook-webcam.md))
+
+4. **Verifica que ambos extremos viven**:
+
+   ```bash
+   ros2 topic hz /image_raw            # ~30 Hz
+   ros2 topic echo /chassis/heartbeat  # contador subiendo
+   ros2 topic pub --once /set_led std_msgs/Bool "{data: true}"   # 💡
+   rqt_graph                           # ve el grafo completo
+   ```
+
+5. **Escribe tu nodo** (sección A3) y córrelo.
+
+6. **Visualiza** en RViz2 agregando un display *Image* con tu
+   `/image_processed`. Guía: `rviz/README.md` del paquete.
+
+---
+
+# Parte B · TurtleBot completo
+
+> **Meta:** el robot móvil completo — rplidar, chasis con ruedas y navegación.
+>
+> **Firmware:** proyecto `esp32_ws/chassis` (o el sketch `sketch/chassis/chassis.ino` en el Uno Q).
+
+Todo lo de la Parte A sigue aplicando. Lo que se **agrega** es el rplidar
+(`/scan`) y el control de ruedas (`/cmd_vel`).
+
+## B1. La red completa
+
+```mermaid
+graph LR
+    subgraph ROBOT["🤖 SBC (edge)"]
+        USBCAM(["usb_cam"])
+        RPLIDAR(["rplidar_composition"])
+        AGENT(["micro_ros_agent"])
+    end
+
+    subgraph MCU["🔌 ESP32 (modo TurtleBot)"]
+        ESP(["chassis_esp32"])
+    end
+
+    subgraph PC["💻 PC (host)"]
+        RVIZ(["rviz2"])
+        LED(["control_led /<br/>toggle_led"])
+    end
+
+    subgraph TU["✨ Tu código"]
+        CVNODE(["tu_nodo_opencv"])
+    end
+
+    USBCAM -->|"/image_raw<br/>sensor_msgs/Image"| RVIZ
+    USBCAM -->|"/camera_info"| RVIZ
+    RPLIDAR -->|"/scan<br/>sensor_msgs/LaserScan"| RVIZ
+    RPLIDAR -.->|"/scan"| CVNODE
+
+    USBCAM -->|"/image_raw"| CVNODE
+    CVNODE -.->|"/image_processed"| RVIZ
+    CVNODE ==>|"/cmd_vel<br/>geometry_msgs/Twist"| AGENT
+    LED -->|"/set_led"| AGENT
+
+    AGENT <===>|"serial / UDP"| ESP
+    ESP -->|PWM| MOT["⚙️ Motores"]
+    AGENT -->|"/chassis/heartbeat"| RVIZ
+
+    classDef robot fill:#2ea043,stroke:#166534,color:#fff
+    classDef pc fill:#1f6feb,stroke:#0b3d91,color:#fff
+    classDef tu fill:#a371f7,stroke:#6e40c9,color:#fff
+    classDef mcu fill:#d29922,stroke:#9e6a03,color:#fff
+    classDef hw fill:#30363d,stroke:#8b949e,color:#fff
+    class USBCAM,RPLIDAR,AGENT robot
+    class RVIZ,LED pc
+    class CVNODE tu
+    class ESP mcu
+    class MOT hw
+```
+
+**Topics que se agregan respecto a la Parte A:**
+
+| Topic      | Tipo                    | Dirección | Para qué |
+|------------|-------------------------|-----------|----------|
+| `/scan`    | `sensor_msgs/LaserScan` | ← rplidar | Barrido del rplidar (obstáculos) |
+| `/cmd_vel` | `geometry_msgs/Twist`   | → ESP32   | **Tu actuación**: velocidad (v, ω) |
+
+---
+
+## B2. Detalle: `mcu.launch.py` (backend conmutable)
 
 El chassis puede hablar con **dos hardwares distintos**. El launch elige cuál
-levantar según el argumento `chassis_backend`, usando condiciones (`IfCondition`)
+levantar según el argumento `backend`, usando condiciones (`IfCondition`)
 — por eso solo arranca el nodo que corresponde.
 
 ```mermaid
 graph TD
-    START["chassis.launch.py<br/>chassis_backend = ?"]
+    START["mcu.launch.py<br/>backend = ?"]
 
     START -->|"= uno_q"| UNOQ["Node uno_q_bridge<br/>(chassis_bridge)<br/>→ Arduino Uno Q"]
     START -->|"= microros"| MR{"microros_transport = ?"}
@@ -211,8 +431,8 @@ graph TD
 
 | Argumento            | Default        | Choices          | Aplica cuando |
 |----------------------|----------------|------------------|---------------|
-| `chassis_backend`    | `uno_q`        | `uno_q`, `microros` | siempre |
-| `microros_transport` | `serial`       | `serial`, `udp4` | `chassis_backend=microros` |
+| `backend`    | `uno_q`        | `uno_q`, `microros` | siempre |
+| `microros_transport` | `serial`       | `serial`, `udp4` | `backend=microros` |
 | `serial_device`      | `/dev/ttyUSB0` | —                | transporte `serial` |
 | `serial_baudrate`    | `115200`       | —                | transporte `serial` |
 | `udp_port`           | `8888`         | —                | transporte `udp4` |
@@ -221,121 +441,106 @@ Ejemplos:
 
 ```bash
 # Arduino Uno Q
-ros2 launch turtlebot_core chassis.launch.py chassis_backend:=uno_q
+ros2 launch turtlebot_core mcu.launch.py backend:=uno_q
 
 # ESP32 por serial
-ros2 launch turtlebot_core chassis.launch.py \
-  chassis_backend:=microros microros_transport:=serial serial_device:=/dev/ttyUSB0
+ros2 launch turtlebot_core mcu.launch.py \
+  backend:=microros microros_transport:=serial serial_device:=/dev/ttyUSB0
 
 # ESP32 por WiFi (UDP)
-ros2 launch turtlebot_core chassis.launch.py \
-  chassis_backend:=microros microros_transport:=udp4 udp_port:=8888
+ros2 launch turtlebot_core mcu.launch.py \
+  backend:=microros microros_transport:=udp4 udp_port:=8888
 ```
 
 ---
 
-## 6. Dónde entra TU nodo de OpenCV
+## B3. Del `/cmd_vel` a las ruedas
 
-Tu nodo es **un suscriptor más** de `/image_raw`. No tienes que tocar
-`webcam.launch.py`: te conectas al topic que ya publica `usb_cam`.
+El `micro_ros_agent` solo es el puente; quien convierte el `Twist` en giro de
+ruedas es el **firmware** de `esp32_ws/chassis/`.
 
 ```mermaid
-sequenceDiagram
-    participant Cam as usb_cam
-    participant Bridge as cv_bridge
-    participant Yo as tu_nodo_opencv
-    participant RViz as rviz2 / consumidores
+graph LR
+    ROS["Red ROS 2<br/>/cmd_vel · /set_led<br/>/chassis/heartbeat"]
+    AG["micro_ros_agent<br/><i>(SBC, lo lanza mcu.launch.py)</i>"]
+    FW["chassis_esp32<br/><i>mezcla diferencial</i>"]
 
-    Cam->>Yo: /image_raw (sensor_msgs/Image)
-    Note over Yo,Bridge: imgmsg_to_cv2()<br/>→ np.ndarray (BGR)
-    Yo->>Yo: procesas con OpenCV<br/>(filtros, detección, etc.)
-    Note over Yo,Bridge: cv2_to_imgmsg()<br/>→ sensor_msgs/Image
-    Yo->>RViz: /image_processed (topic tuyo)
+    ROS <--> AG
+    AG <===>|"serial /dev/ttyUSB0<br/>o UDP :8888"| FW
+    FW -->|PWM| MOT["Motores<br/><i>← tu código</i>"]
+
+    classDef a fill:#2ea043,stroke:#166534,color:#fff
+    classDef b fill:#d29922,stroke:#9e6a03,color:#fff
+    classDef c fill:#30363d,stroke:#8b949e,color:#fff
+    class AG a
+    class FW b
+    class ROS,MOT c
 ```
 
-Esqueleto mínimo de un nodo suscriptor (rclpy + cv_bridge):
+Dentro de `cmd_vel_callback()` el firmware ya aplica el **modelo diferencial**:
 
-```python
-import rclpy
-from rclpy.node import Node
-from sensor_msgs.msg import Image
-from cv_bridge import CvBridge
-import cv2
-
-
-class OpenCVNode(Node):
-    def __init__(self):
-        super().__init__('tu_nodo_opencv')
-        self.bridge = CvBridge()
-        # Te suscribes al topic que ya publica usb_cam:
-        self.sub = self.create_subscription(
-            Image, '/image_raw', self.on_image, 10)
-        # Publicas tu resultado en un topic propio:
-        self.pub = self.create_publisher(Image, '/image_processed', 10)
-
-    def on_image(self, msg):
-        frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
-
-        # --- tu procesamiento OpenCV aquí ---
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        out = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
-        # -------------------------------------
-
-        out_msg = self.bridge.cv2_to_imgmsg(out, encoding='bgr8')
-        out_msg.header = msg.header  # conserva timestamp y frame_id
-        self.pub.publish(out_msg)
-
-
-def main():
-    rclpy.init()
-    rclpy.spin(OpenCVNode())
-    rclpy.shutdown()
+```c
+v_left  = v - (w * WHEEL_SEPARATION / 2.0f);
+v_right = v + (w * WHEEL_SEPARATION / 2.0f);
 ```
 
-> Conserva `msg.header` en tu salida: así tu imagen procesada mantiene el
-> `frame_id = camera_optical_frame` y RViz2 la puede ubicar en el árbol de TF
-> igual que `/image_raw`.
+Lo que falta (marcado con `TODO(alumno)`) es mandar esas velocidades a los
+motores. Ajusta también `WHEEL_SEPARATION` y `WHEEL_RADIUS` a tu chasis.
+
+> ⚠️ **El transporte se fija al compilar el firmware**, no en runtime. Si el
+> firmware está compilado para serial, el agente debe lanzarse con
+> `microros_transport:=serial` (y viceversa con `udp4`). Tabla de equivalencias
+> en `esp32_ws/chassis/README.md`.
 
 ---
 
-## 7. Flujo de trabajo para empezar a desarrollar
+## B4. Flujo de trabajo (Parte B)
 
-1. **Levanta la cámara** (en el robot o localmente con la webcam):
-
-   ```bash
-   ros2 launch turtlebot_core webcam.launch.py \
-     video_device:=/dev/v4l/by-id/<tu-camara>-video-index0
-   ```
-
-   (Identificar la cámara → [`runbook-webcam.md`](./runbook-webcam.md))
-
-2. **Confirma que la imagen publica:**
+1. **Recompila el firmware** en modo TurtleBot:
 
    ```bash
-   ros2 topic list | grep image        # /image_raw, /camera_info
-   ros2 topic hz /image_raw            # ~30 Hz
-   ros2 topic echo /image_raw --once   # inspecciona el header (frame_id)
+   robot esp
+   cd /project/chassis
+   idf.py menuconfig     # Chassis Configuration → TurtleBot completo
+   idf.py build && idf.py -p /dev/ttyUSB0 flash monitor
    ```
 
-3. **Explora el grafo en vivo** (muy útil para ver dónde encaja tu nodo):
+2. **Levanta el edge completo** en la SBC (rplidar + chassis + cámara):
 
    ```bash
-   rqt_graph
+   robot edge
+   ros2 launch turtlebot_core edge.launch.py \
+     backend:=microros microros_transport:=serial
    ```
 
-4. **Escribe tu nodo** suscrito a `/image_raw`, procésalo con OpenCV y publica en
-   un topic propio (sección 6).
+3. **Visualiza desde la PC**:
 
-5. **Visualiza el resultado** en RViz2 agregando un display *Image* apuntando a
-   tu topic (`/image_processed`). Guía: `rviz/README.md` del paquete.
+   ```bash
+   robot dev
+   ros2 launch turtlebot_core host.launch.py
+   ```
+
+4. **Prueba el movimiento** (mira el monitor serie de la ESP32):
+
+   ```bash
+   ros2 topic pub --once /cmd_vel geometry_msgs/Twist \
+     "{linear: {x: 0.2}, angular: {z: 0.5}}"
+   ```
+
+5. **Cierra el lazo**: haz que tu nodo de OpenCV publique `/cmd_vel` en vez de
+   (o además de) `/set_led` — por ejemplo, girar hacia el objeto detectado.
 
 ---
 
 ## Resumen mental
 
-- `turtlebot_edge` = **datos** (sensores/actuadores en el robot).
-- `turtlebot_host` = **visualización** (RViz2 en la PC).
-- `webcam.launch.py` publica `/image_raw` (+ TF) → **tu punto de entrada para OpenCV**.
-- `chassis.launch.py` decide el hardware (Uno Q vs ESP32) según argumentos.
-- Tu nodo se **suscribe** a `/image_raw` y **publica** su propio topic; no
-  modificas los launch existentes.
+- `edge` = **datos** (sensores/actuadores en la SBC).
+- `host` = **visualización** (RViz2 en la PC).
+- `webcam.launch.py` publica `/image_raw` (+ TF) → **tu punto de entrada**.
+- El `micro_ros_agent` es un **puente**: los topics de la ESP32 se ven como
+  cualquier otro topic de ROS 2.
+- **Parte A:** tu nodo publica `/set_led` → LED. Sin motores, mismo patrón.
+- **Parte B:** tu nodo publica `/cmd_vel` → ruedas. Cambia el topic, no la
+  arquitectura.
+- Tu nodo se **suscribe** a `/image_raw` y **publica** lo suyo; no modificas los
+  launch existentes.

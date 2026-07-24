@@ -4,8 +4,9 @@ ros2_ws/install
 ros2_ws/log
 ros2_ws/src/*
 
-# Allow turtlebot_core
+# Allow turtlebot_core & uno_q_bridge
 !ros2_ws/src/turtlebot_core
+!ros2_ws/src/uno_q_bridge
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

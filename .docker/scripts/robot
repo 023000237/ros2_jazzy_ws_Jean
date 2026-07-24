@@ -17,6 +17,14 @@ case "$cmd" in
         exec "$SCRIPT_DIR/edge"
         ;;
 
+    rpi)
+        exec "$SCRIPT_DIR/rpi"
+        ;;
+
+    uno_q)
+        exec "$SCRIPT_DIR/uno_q"
+        ;;
+
     rm)
         exec "$SCRIPT_DIR/rm"
         ;;
@@ -28,7 +36,9 @@ case "$cmd" in
     *)
         echo "Usage:"
         echo "  robot dev   → start dev container"
-        echo "  robot edge  → start edge container (Raspberry/Arduino Uno Q)"
+        echo "  robot edge  → start edge container (Generic)"
+        echo "  robot edge  → start edge container (Raspberry Pi)"
+        echo "  robot edge  → start edge container (Arduino Uno Q)"
         echo "  robot rm    → remove container and free space"
         echo "  robot esp   → start esp container"
         ;;

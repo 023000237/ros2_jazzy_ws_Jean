@@ -1,0 +1,24 @@
+services:
+  ros2:
+    build:
+      context: ../..
+      dockerfile: .docker/ubuntu_raspberry_pi/Dockerfile    
+
+    container_name: ros2_rpi
+
+    network_mode: host
+    ipc: host
+
+    privileged: true
+    
+    stdin_open: true
+    tty: true
+
+    volumes:
+      # workspace manejable desde vscode
+      - ../../ros2_ws:/ros2_ws
+      # exposicion de puertos externos
+      - /dev:/dev
+    
+    environment:
+      ROS_DOMAIN_ID: 0

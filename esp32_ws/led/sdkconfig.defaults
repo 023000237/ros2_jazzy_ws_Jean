@@ -1,0 +1,17 @@
+# Configuracion por defecto del firmware led (transporte SERIAL)
+# Coincide con: chassis.launch.py chassis_backend:=microros microros_transport:=serial
+
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=3000
+CONFIG_ESP_TASK_WDT=n
+
+# micro-ROS sobre Micro XRCE-DDS, transporte UART (serial por USB)
+CONFIG_MICRO_ROS_ESP_XRCE_DDS_MIDDLEWARE=y
+CONFIG_MICRO_ROS_ESP_UART_TRANSPORT=y
+
+# GPIO del LED de a bordo
+CONFIG_LED_GPIO=2
+
+# Trazas de /set_led por consola. Apagadas: con transporte UART0 la consola
+# comparte puerto con micro-ROS y las impresiones ensucian el flujo XRCE-DDS.
+# Enciendelas solo para depurar.
+CONFIG_LED_DEBUG_PRINT=n
