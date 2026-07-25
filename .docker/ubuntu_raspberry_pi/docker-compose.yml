@@ -21,4 +21,7 @@ services:
       - /dev:/dev
     
     environment:
+      # canal dds de comunicación
       ROS_DOMAIN_ID: 0
+      # forzamos conexión con una ip
+      ROS_STATIC_PEERS: 192.168.68.60

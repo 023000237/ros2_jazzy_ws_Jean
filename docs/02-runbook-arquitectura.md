@@ -18,7 +18,7 @@ alumno, solo tengas que tocar **dos cosas**:
 
 > ⚠️ **Ojo:** esta es la arquitectura del **repositorio**. La arquitectura de la
 > **red ROS** (nodos, topics, grafo) está en
-> [`runbook-arquitectura.md`](./runbook-arquitectura.md).
+> [`04-runbook-red-ros.md`](./04-runbook-red-ros.md).
 
 ---
 
@@ -310,6 +310,8 @@ uno_q_mi_firmware_node = Node(
 
 ## Siguientes pasos
 
+- Conectar las máquinas por la red ROS (DDS) →
+  [`03-runbook-conectividad.md`](./03-runbook-conectividad.md)
 - Cómo se conectan los nodos y topics (arquitectura de la red ROS) →
-  [`runbook-arquitectura.md`](./runbook-arquitectura.md)
-- Identificar y configurar tu webcam → [`runbook-webcam.md`](./runbook-webcam.md)
+  [`04-runbook-red-ros.md`](./04-runbook-red-ros.md)
+- Identificar y configurar tu webcam → [`05-runbook-webcam.md`](./05-runbook-webcam.md)

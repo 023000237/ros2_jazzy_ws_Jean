@@ -98,7 +98,7 @@ Solo como referencia: [documentación de ROS 2 Jazzy](https://docs.ros.org/en/ja
 
 - **git** instalado: `sudo apt update && sudo apt install -y git`
 - Una **cuenta de GitHub** (para el fork).
-- Tu **webcam identificada** → ver [`runbook-webcam.md`](./runbook-webcam.md).
+- Tu **webcam identificada** → ver [`05-runbook-webcam.md`](./05-runbook-webcam.md).
 
 ---
 
@@ -253,8 +253,9 @@ Jazzy construido, el workspace compilado y (si aplica) la SBC lista para captar.
 
 ### Siguientes pasos
 
-- Identificar y configurar tu webcam → [`runbook-webcam.md`](./runbook-webcam.md)
-- Entender la arquitectura de red antes de programar → [`runbook-arquitectura.md`](./runbook-arquitectura.md)
+- Conectar las máquinas por la red ROS (DDS) → [`03-runbook-conectividad.md`](./03-runbook-conectividad.md)
+- Entender la arquitectura de red antes de programar → [`04-runbook-red-ros.md`](./04-runbook-red-ros.md)
+- Identificar y configurar tu webcam → [`05-runbook-webcam.md`](./05-runbook-webcam.md)
 - Firmware del MCU → `esp32_ws/led` · `esp32_ws/chassis` (ESP32) o `sketch/` (Uno Q)
 
 ### Comandos útiles del día a día

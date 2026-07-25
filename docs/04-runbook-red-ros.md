@@ -1,4 +1,4 @@
-# Runbook · Arquitectura del paquete `turtlebot_core`
+# 04 · Runbook — Red ROS del paquete `turtlebot_core`
 
 Este runbook explica cómo está estructurado el paquete `turtlebot_core` y, sobre
 todo, **cómo fluye la información por la red de ROS 2** (nodos, topics y TF).
@@ -313,7 +313,7 @@ def main():
      video_device:=/dev/v4l/by-id/<tu-camara>-video-index0
    ```
 
-   (Identificar la cámara → [`runbook-webcam.md`](./runbook-webcam.md))
+   (Identificar la cámara → [`05-runbook-webcam.md`](./05-runbook-webcam.md))
 
 4. **Verifica que ambos extremos viven**:
 
@@ -326,8 +326,8 @@ def main():
 
 5. **Escribe tu nodo** (sección A3) y córrelo.
 
-6. **Visualiza** en RViz2 agregando un display *Image* con tu
-   `/image_processed`. Guía: `rviz/README.md` del paquete.
+6. **Visualiza** en RViz2 (lo levanta `host.launch.py` desde la PC) agregando un
+   display *Image* con tu `/image_processed`.
 
 ---
 
@@ -544,3 +544,14 @@ motores. Ajusta también `WHEEL_SEPARATION` y `WHEEL_RADIUS` a tu chasis.
   arquitectura.
 - Tu nodo se **suscribe** a `/image_raw` y **publica** lo suyo; no modificas los
   launch existentes.
+
+---
+
+## Siguientes pasos
+
+- Identificar y configurar tu webcam (el origen de `/image_raw`) →
+  [`05-runbook-webcam.md`](./05-runbook-webcam.md)
+- Si la PC no ve los topics del robot, diagnostica la red (DDS) →
+  [`03-runbook-conectividad.md`](./03-runbook-conectividad.md)
+- Qué carpeta tocas y cuál no (arquitectura del repo) →
+  [`02-runbook-arquitectura.md`](./02-runbook-arquitectura.md)
