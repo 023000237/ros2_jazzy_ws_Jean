@@ -297,6 +297,8 @@ robot edge          # o: robot rpi / robot uno_q
 ros2 launch turtlebot_core edge.launch.py
 ```
 
+![rviz dashboard](docs/img/rviz_dashboard.png)
+
 ---
 
 ## 6. Tu tarea (alumno): personaliza estos dos archivos
