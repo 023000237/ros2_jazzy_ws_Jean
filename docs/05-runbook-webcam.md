@@ -1,4 +1,4 @@
-# Runbook · Identificar y configurar tu webcam
+# 05 · Runbook — Identificar y configurar tu webcam
 
 Cada webcam puede aparecer con un número de dispositivo distinto
 (`/dev/video0`, `/dev/video1`, …) y ese número **cambia** según el orden en que
@@ -69,8 +69,9 @@ Para verificar que publica:
 ros2 topic hz /image_raw     # debe rondar ~30 Hz
 ```
 
-Para visualizarla en RViz2, sigue
-`ros2_ws/src/turtlebot_core/rviz/README.md`.
+Para visualizarla en RViz2, lánzalo desde la PC con `host.launch.py`, que arma
+la vista automáticamente según tu `robot.ini` (ver
+[`04-runbook-red-ros.md`](./04-runbook-red-ros.md)).
 
 ---
 
@@ -139,5 +140,12 @@ Si la cámara no arranca o da error de formato, ajústalo en el mismo archivo
 - [ ] `ros2 launch turtlebot_core webcam.launch.py video_device:=<tu-ruta>` publica en `/image_raw`.
 - [ ] (Opcional) Fijaste tu ruta como `default_value` en `webcam.launch.py`.
 
-Siguiente paso: visualizar en RViz2 →
-`ros2_ws/src/turtlebot_core/rviz/README.md`
+---
+
+## Siguientes pasos
+
+- Visualizar `/image_raw` en RViz2 (se arma solo con `host.launch.py`) y entender
+  el grafo de topics → [`04-runbook-red-ros.md`](./04-runbook-red-ros.md)
+- Conectar la PC y el robot por la red ROS (DDS) →
+  [`03-runbook-conectividad.md`](./03-runbook-conectividad.md)
+- Volver a la instalación → [`01-runbook-instalacion.md`](./01-runbook-instalacion.md)

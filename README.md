@@ -182,9 +182,11 @@ ros2 topic echo /image_raw --no-arr    # llegan mensajes = DDS OK
 ```
 
 Si `ros2 topic list` en la PC muestra los topics del robot, el canal DDS
-funciona. Si **no** aparecen, revisa los tres sospechosos: mismo
+funciona. Si **no** aparecen, revisa los sospechosos habituales: mismo
 `ROS_DOMAIN_ID`, misma LAN, y que ningún firewall bloquee el tráfico UDP /
-multicast de DDS.
+multicast de DDS. La guía de diagnóstico paso a paso (subred, ping, `ufw`,
+`ROS_STATIC_PEERS`) está en
+[`docs/03-runbook-conectividad.md`](docs/03-runbook-conectividad.md).
 
 ---
 
@@ -389,8 +391,9 @@ y [`esp32_ws/led/README.md`](esp32_ws/led/README.md).
 |---|---|
 | [`docs/01-runbook-instalacion.md`](docs/01-runbook-instalacion.md) | Instalación desde cero (capas, `install.sh`, `robot`, build) |
 | [`docs/02-runbook-arquitectura.md`](docs/02-runbook-arquitectura.md) | Arquitectura del **repo**: para qué es cada carpeta y qué tocas (1 script + 1 firmware) |
-| [`docs/runbook-webcam.md`](docs/runbook-webcam.md) | Identificar y configurar la webcam |
-| [`docs/runbook-arquitectura.md`](docs/runbook-arquitectura.md) | Arquitectura de la **red ROS** (nodos/topics) para programar con OpenCV |
+| [`docs/03-runbook-conectividad.md`](docs/03-runbook-conectividad.md) | Conectar las máquinas por DDS: diagnóstico de red (subred, ping, `ufw`, `ROS_STATIC_PEERS`) |
+| [`docs/04-runbook-red-ros.md`](docs/04-runbook-red-ros.md) | Arquitectura de la **red ROS** (nodos/topics) para programar con OpenCV |
+| [`docs/05-runbook-webcam.md`](docs/05-runbook-webcam.md) | Identificar y configurar la webcam |
 | [`docs/robot-command.md`](docs/robot-command.md) | Qué es el comando `robot` y cómo se instala |
 | [`ros2_ws/src/turtlebot_core/robot.ini`](ros2_ws/src/turtlebot_core/robot.ini) | Config del robot: plataforma y dispositivos conectados |
 | [`turtlebot_core/vision_bw.py`](ros2_ws/src/turtlebot_core/turtlebot_core/vision_bw.py) | **Nodo OpenCV que personaliza el alumno** (visión) |
